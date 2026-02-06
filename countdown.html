@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Countdown Timer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --panel-bg: rgba(10, 10, 10, 0.92);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --panel-text: #f3f3f3;
+            --panel-muted: rgba(255, 255, 255, 0.7);
+            --panel-accent: #54c2ff;
+        }
         body {
             display: flex;
             flex-direction: column;
@@ -17,15 +24,184 @@
             font-family: 'Roboto Mono', monospace;
             margin: 0;
             text-align: center;
+            transition: background-color 0.25s ease, color 0.25s ease, font-family 0.25s ease;
         }
         .message, .current-time {
             font-size: 50px;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Drop shadow effect */
         }
+        .message {
+            font-weight: 700;
+        }
+        .current-time.hidden {
+            display: none;
+        }
         .countdown {
             font-size: 64px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Drop shadow effect */
+        }
+        .countdown.long {
+            font-size: clamp(32px, 4vw, 48px);
+            white-space: nowrap;
+        }
+
+        .settings-corner {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            width: 88px;
+            height: 88px;
+            z-index: 10;
+        }
+        .settings-toggle {
+            position: absolute;
+            right: 18px;
+            bottom: 18px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            background: rgba(0, 0, 0, 0.55);
+            color: var(--panel-text);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+        }
+        .settings-corner:hover .settings-toggle,
+        .settings-toggle:focus-visible,
+        .settings-panel.open + .settings-toggle {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(-2px);
+        }
+        .settings-toggle:hover {
+            background: rgba(0, 0, 0, 0.75);
+        }
+        .settings-toggle svg {
+            width: 22px;
+            height: 22px;
+        }
+        @media (hover: none) {
+            .settings-toggle {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        .settings-panel {
+            position: fixed;
+            right: 18px;
+            bottom: 72px;
+            width: min(360px, 90vw);
+            padding: 18px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            color: var(--panel-text);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(10px);
+            z-index: 9;
+        }
+        .settings-panel.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .settings-panel h2 {
+            font-size: 16px;
+            margin: 0 0 12px 0;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--panel-muted);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 12px;
+        }
+        .settings-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .settings-field label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--panel-muted);
+        }
+        .settings-field input,
+        .settings-field select,
+        .settings-field textarea {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            color: var(--panel-text);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .settings-field select option {
+            background: #0d0f14;
+            color: var(--panel-text);
+        }
+        .settings-field input[type="color"] {
+            padding: 0;
+            height: 38px;
+        }
+        .settings-field.color {
+            align-items: center;
+            text-align: center;
+        }
+        .settings-field.color input[type="color"] {
+            width: 56px;
+        }
+        .settings-field.full {
+            grid-column: 1 / -1;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .settings-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--panel-accent);
+        }
+        .settings-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        .settings-actions button {
+            flex: 1;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--panel-text);
+            padding: 9px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .settings-actions button.primary {
+            background: var(--panel-accent);
+            border-color: transparent;
+            color: #02111a;
+        }
+        .settings-actions button:hover {
+            filter: brightness(1.05);
         }
     </style>
 </head>
@@ -33,14 +209,77 @@
     <div class="message" id="message"></div>
     <div class="current-time" id="current-time"></div>
     <div class="countdown" id="countdown">00:00:00</div>
+    <div class="settings-panel" id="settings-panel" aria-hidden="true">
+        <h2>Countdown Settings</h2>
+        <div class="settings-grid">
+            <div class="settings-field">
+                <label for="setting-date">End Date</label>
+                <input type="date" id="setting-date">
+            </div>
+            <div class="settings-field">
+                <label for="setting-clock">End Time (optional)</label>
+                <input type="time" id="setting-clock">
+            </div>
+            <div class="settings-field full">
+                <label for="setting-message">Message</label>
+                <textarea id="setting-message" rows="2" placeholder="Optional headline"></textarea>
+            </div>
+            <div class="settings-field">
+                <label for="setting-format">Format</label>
+                <select id="setting-format">
+                    <option value="default">Digital</option>
+                    <option value="long">Long Form</option>
+                </select>
+            </div>
+            <div class="settings-field">
+                <label for="setting-show-time">Show Time</label>
+                <div class="settings-row">
+                    <input type="checkbox" id="setting-show-time">
+                    <span>Include time line</span>
+                </div>
+            </div>
+            <div class="settings-field color">
+                <label for="setting-text-color">Text Color</label>
+                <input type="color" id="setting-text-color" value="#ffffff">
+            </div>
+            <div class="settings-field color">
+                <label for="setting-bg-color">Background</label>
+                <input type="color" id="setting-bg-color" value="#000000">
+            </div>
+            <div class="settings-field full">
+                <label for="setting-font">Font</label>
+                <select id="setting-font">
+                    <option value="'Roboto Mono', monospace">Roboto Mono</option>
+                    <option value="'IBM Plex Mono', monospace">IBM Plex Mono</option>
+                    <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                    <option value="'Fira Mono', monospace">Fira Mono</option>
+                </select>
+            </div>
+        </div>
+        <div class="settings-actions">
+            <button id="settings-reset" type="button">Reset</button>
+            <button id="settings-apply" class="primary" type="button">Apply</button>
+        </div>
+    </div>
+    <div class="settings-corner" aria-hidden="true">
+        <button class="settings-toggle" id="settings-toggle" aria-label="Open settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3.2"></circle>
+                <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.96l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.8 1.8 0 0 0-1.96-.36 1.8 1.8 0 0 0-1.06 1.64V21a2 2 0 1 1-4 0v-.09a1.8 1.8 0 0 0-1.06-1.64 1.8 1.8 0 0 0-1.96.36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.8 1.8 0 0 0 3 15a1.8 1.8 0 0 0-1.64-1.06H1a2 2 0 1 1 0-4h.09A1.8 1.8 0 0 0 2.73 8a1.8 1.8 0 0 0-.36-1.96l-.06-.06A2 2 0 1 1 5.14 3.1l.06.06A1.8 1.8 0 0 0 7.16 3a1.8 1.8 0 0 0 1.06-1.64V1a2 2 0 1 1 4 0v.09A1.8 1.8 0 0 0 13.28 3a1.8 1.8 0 0 0 1.96-.36l.06-.06A2 2 0 1 1 18.13 5l-.06.06A1.8 1.8 0 0 0 18.43 8a1.8 1.8 0 0 0 1.64 1.06H21a2 2 0 1 1 0 4h-.09A1.8 1.8 0 0 0 19.4 15z"></path>
+            </svg>
+        </button>
+    </div>
 
     <script>
-        function updateCountdown(endDateTime, format, showTime, message) {
+        let countdownIntervalId = null;
+
+        function updateCountdown(endDateTime, format, showTime, message, dateOnly = false) {
             const messageElement = document.getElementById('message');
             const countdownElement = document.getElementById('countdown');
             const currentTimeElement = document.getElementById('current-time');
 
             messageElement.textContent = message;
+            countdownElement.classList.toggle('long', format === 'long');
 
             function calculateRemainingTime() {
                 const now = new Date();
@@ -59,30 +298,46 @@
                     const ampm = hours >= 12 ? 'PM' : 'AM';
                     const displayHours = hours % 12 || 12;
                     const timeString = `${displayHours}:${String(minutes).padStart(2, '0')} ${ampm}`;
-
-                    if (timeRemaining >= 24 * 60 * 60 * 1000) {
-                        const options = { month: 'long', day: 'numeric' };
-                        const dateString = end.toLocaleDateString(undefined, options);
-                        currentTimeElement.textContent = `${dateString}, ${timeString}`;
-                    } else {
-                        currentTimeElement.textContent = timeString;
-                    }
+                    const dateOptions = timeRemaining >= 24 * 60 * 60 * 1000
+                        ? { month: 'long', day: 'numeric', year: 'numeric' }
+                        : { month: 'long', day: 'numeric' };
+                    const dateString = end.toLocaleDateString(undefined, dateOptions);
+                    currentTimeElement.textContent = dateOnly ? dateString : `${dateString}, ${timeString}`;
+                    currentTimeElement.classList.remove('hidden');
                 } else {
                     currentTimeElement.textContent = '';
+                    currentTimeElement.classList.add('hidden');
                 }
 
                 if (timeRemaining <= 0) {
-                    countdownElement.textContent = "0 seconds";
+                    countdownElement.textContent = dateOnly ? "Today" : "0 seconds";
                     return;
                 }
 
-                let hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+                if (dateOnly) {
+                    const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
+                    if (format === 'long') {
+                        const dayText = daysRemaining === 1 ? 'day' : 'days';
+                        countdownElement.textContent = `${daysRemaining} ${dayText}`;
+                    } else {
+                        countdownElement.textContent = `${daysRemaining}d`;
+                    }
+                    return;
+                }
+
+                let totalHours = Math.floor(timeRemaining / (1000 * 60 * 60));
+                let days = Math.floor(totalHours / 24);
+                let hours = totalHours % 24;
                 let minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
                 let seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
                 if (format === 'long') {
                     let countdownText = '';
-                    if (hours > 0) {
+                    if (days > 0) {
+                        const dayText = days === 1 ? 'day' : 'days';
+                        countdownText += `${days} ${dayText}, `;
+                    }
+                    if (hours > 0 || days > 0) {
                         const hourText = hours === 1 ? 'hour' : 'hours';
                         countdownText += `${hours} ${hourText}, `;
                     }
@@ -94,15 +349,22 @@
                     countdownText += `${seconds} ${secondText}`;
                     countdownElement.textContent = countdownText;
                 } else {
-                    hours = String(hours).padStart(2, '0');
+                    const hoursText = String(hours).padStart(2, '0');
                     minutes = String(minutes).padStart(2, '0');
                     seconds = String(seconds).padStart(2, '0');
-                    countdownElement.textContent = `${hours}:${minutes}:${seconds}`;
+                    if (days > 0) {
+                        countdownElement.textContent = `${days}d ${hoursText}:${minutes}:${seconds}`;
+                    } else {
+                        countdownElement.textContent = `${hoursText}:${minutes}:${seconds}`;
+                    }
                 }
             }
 
             calculateRemainingTime();
-            setInterval(calculateRemainingTime, 1000);
+            if (countdownIntervalId) {
+                clearInterval(countdownIntervalId);
+            }
+            countdownIntervalId = setInterval(calculateRemainingTime, 1000);
         }
 
         function getQueryParam(param) {
@@ -110,19 +372,254 @@
             return urlParams.get(param);
         }
 
-        const endDateTime = getQueryParam('datetime');
-        const textColor = getQueryParam('color') || 'white';
-        const format = getQueryParam('format') || 'default';
-        const showTime = getQueryParam('time') === 'include';
-        const message = getQueryParam('msg') || '';
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingDate = document.getElementById('setting-date');
+        const settingClock = document.getElementById('setting-clock');
+        const settingMessage = document.getElementById('setting-message');
+        const settingFormat = document.getElementById('setting-format');
+        const settingShowTime = document.getElementById('setting-show-time');
+        const settingTextColor = document.getElementById('setting-text-color');
+        const settingBgColor = document.getElementById('setting-bg-color');
+        const settingFont = document.getElementById('setting-font');
 
-        if (endDateTime) {
-            document.getElementById('countdown').style.color = textColor;
-            updateCountdown(endDateTime, format, showTime, message);
-        } else {
-            document.getElementById('countdown').textContent = 'Invalid date';
+        function normalizeHexColor(color) {
+            if (!color) {
+                return null;
+            }
+            if (color.startsWith('#') && color.length === 7) {
+                return color;
+            }
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = color;
+            const computed = ctx.fillStyle;
+            if (computed.startsWith('#') && computed.length === 7) {
+                return computed;
+            }
+            const match = computed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (!match) {
+                return null;
+            }
+            return `#${match.slice(1).map((value) => Number(value).toString(16).padStart(2, '0')).join('')}`;
+        }
+
+        function applyVisualSettings({ textColor, bgColor, fontFamily }) {
+            if (textColor) {
+                document.body.style.color = textColor;
+            }
+            if (bgColor) {
+                document.body.style.backgroundColor = bgColor;
+            }
+            if (fontFamily) {
+                document.body.style.fontFamily = fontFamily;
+            }
+        }
+
+        function normalizeDateTimeInput(value) {
+            if (!value) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return value;
+            }
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+                return value;
+            }
+            const parsed = new Date(value);
+            if (isNaN(parsed)) {
+                return '';
+            }
+            const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+            return local.toISOString().slice(0, 16);
+        }
+
+        function splitDateTime(value) {
+            if (!value) {
+                return { date: '', time: '', dateOnly: false };
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return { date: value, time: '', dateOnly: true };
+            }
+            const [date, time] = value.split('T');
+            return { date: date || '', time: (time || '').slice(0, 5), dateOnly: false };
+        }
+
+        function formatLocalDateTime(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        }
+
+        function getNextChristmasLocal() {
+            const now = new Date();
+            const christmasThisYear = new Date(now.getFullYear(), 11, 25, 0, 0, 0, 0);
+            const year = now >= christmasThisYear ? now.getFullYear() + 1 : now.getFullYear();
+            return new Date(year, 11, 25, 0, 0, 0, 0);
+        }
+
+        function getSettingsFromQuery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasParams = [...urlParams.keys()].length > 0;
+            const timeParam = getQueryParam('time');
+            const rawDateTime = getQueryParam('datetime');
+            const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(rawDateTime || '');
+            const defaultDateTime = formatLocalDateTime(getNextChristmasLocal());
+            if (!hasParams) {
+                return {
+                    endDateTime: defaultDateTime,
+                    textColor: 'white',
+                    bgColor: 'black',
+                    format: 'long',
+                    showTime: true,
+                    message: '',
+                    fontFamily: "'Roboto Mono', monospace",
+                    dateOnly: false
+                };
+            }
+            return {
+                endDateTime: normalizeDateTimeInput(rawDateTime) || defaultDateTime,
+                textColor: getQueryParam('color') || 'white',
+                bgColor: getQueryParam('bg') || 'black',
+                format: getQueryParam('format') || 'default',
+                showTime: timeParam === null ? true : timeParam === 'include',
+                message: getQueryParam('msg') || '',
+                fontFamily: getQueryParam('font') || "'Roboto Mono', monospace",
+                dateOnly
+            };
+        }
+
+        function syncForm(settings) {
+            const split = splitDateTime(settings.endDateTime);
+            settingDate.value = split.date;
+            settingClock.value = split.time;
+            settingMessage.value = settings.message;
+            settingFormat.value = settings.format;
+            settingShowTime.checked = settings.showTime;
+            const normalizedText = normalizeHexColor(settings.textColor);
+            const normalizedBg = normalizeHexColor(settings.bgColor);
+            if (normalizedText) {
+                settingTextColor.value = normalizedText;
+            }
+            if (normalizedBg) {
+                settingBgColor.value = normalizedBg;
+            }
+            if (![...settingFont.options].some((option) => option.value === settings.fontFamily)) {
+                const customOption = document.createElement('option');
+                customOption.value = settings.fontFamily;
+                customOption.textContent = settings.fontFamily.replace(/['"]/g, '');
+                settingFont.appendChild(customOption);
+            }
+            settingFont.value = settings.fontFamily;
+        }
+
+        function updateFromSettings(settings) {
+            if (settings.endDateTime) {
+                const normalizedDateTime = settings.dateOnly && !settings.endDateTime.includes('T')
+                    ? `${settings.endDateTime}T00:00`
+                    : settings.endDateTime;
+                updateCountdown(normalizedDateTime, settings.format, settings.showTime, settings.message, settings.dateOnly);
+            } else {
+                document.getElementById('countdown').textContent = 'Invalid date';
+            }
+            applyVisualSettings(settings);
+        }
+
+        function updateQueryFromSettings(settings) {
+            const url = new URL(window.location.href);
+            const params = url.searchParams;
+            if (settings.endDateTime) {
+                params.set('datetime', settings.endDateTime);
+            } else {
+                params.delete('datetime');
+            }
+            if (settings.message) {
+                params.set('msg', settings.message);
+            } else {
+                params.delete('msg');
+            }
+            if (settings.format && settings.format !== 'default') {
+                params.set('format', settings.format);
+            } else {
+                params.delete('format');
+            }
+            if (settings.showTime) {
+                params.set('time', 'include');
+            } else {
+                params.delete('time');
+            }
+            if (settings.textColor) {
+                params.set('color', settings.textColor);
+            }
+            if (settings.bgColor) {
+                params.set('bg', settings.bgColor);
+            }
+            if (settings.fontFamily) {
+                params.set('font', settings.fontFamily);
+            }
+            window.history.replaceState({}, '', url.toString());
+        }
+
+        function getSettingsFromForm() {
+            const dateValue = settingDate.value;
+            const timeValue = settingClock.value;
+            const rawDateTime = dateValue ? (timeValue ? `${dateValue}T${timeValue}` : dateValue) : '';
+            const dateOnly = dateValue && !timeValue;
+            return {
+                endDateTime: normalizeDateTimeInput(rawDateTime),
+                message: settingMessage.value.trim(),
+                format: settingFormat.value,
+                showTime: settingShowTime.checked,
+                textColor: settingTextColor.value,
+                bgColor: settingBgColor.value,
+                fontFamily: settingFont.value,
+                dateOnly
+            };
+        }
+
+        function toggleSettingsPanel(forceOpen = null) {
+            const isOpen = settingsPanel.classList.contains('open');
+            const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
+            settingsPanel.classList.toggle('open', shouldOpen);
+            settingsPanel.setAttribute('aria-hidden', String(!shouldOpen));
+        }
+
+        settingsToggle.addEventListener('click', () => toggleSettingsPanel());
+
+        document.getElementById('settings-apply').addEventListener('click', () => {
+            const settings = getSettingsFromForm();
+            updateQueryFromSettings(settings);
+            updateFromSettings(settings);
+            syncForm(settings);
+            toggleSettingsPanel(false);
+        });
+
+        document.getElementById('settings-reset').addEventListener('click', () => {
+            const defaults = {
+                endDateTime: '',
+                message: '',
+                format: 'default',
+                showTime: true,
+                textColor: '#ffffff',
+                bgColor: '#000000',
+                fontFamily: "'Roboto Mono', monospace",
+                dateOnly: false
+            };
+            syncForm(defaults);
+            updateQueryFromSettings(defaults);
+            updateFromSettings(defaults);
+        });
+
+        const initialSettings = getSettingsFromQuery();
+        syncForm(initialSettings);
+        updateFromSettings(initialSettings);
+
+        const initialParams = new URLSearchParams(window.location.search);
+        if ([...initialParams.keys()].length === 0) {
+            toggleSettingsPanel(true);
         }
     </script>
 </body>
 </html>
-

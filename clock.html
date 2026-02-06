@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Clock</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Roboto+Mono:wght@400;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: "Comic Mono";
+            src: url("https://files.eduk8.me/resources/ComicMono.woff2") format("woff2"),
+                 url("https://files.eduk8.me/resources/ComicMono.woff") format("woff");
+            font-weight: 400 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            --clock-font: "Fira Mono", monospace;
+            --clock-color: #00ff66;
+            --bg-color: #000000;
+        }
+        body {
+            background-color: var(--bg-color);
+            margin: 0; /* Remove default margin */
+            padding: 0; /* Remove default padding */
+        }
+        #clock {
+            color: var(--clock-color);
+            font-size: 16vw; /* Adjusted font size to fit AM/PM */
+            font-family: var(--clock-font);
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+        }
+        body.no-date #clock {
+            top: 50%;
+        }
+        #date {
+            color: var(--clock-color);
+            font-size: 5vw; /* Adjust font size based on viewport width */
+            font-family: var(--clock-font);
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+        }
+        body.no-date #date {
+            display: none;
+        }
+        .time {
+            display: inline-block;
+        }
+        .ampm {
+            font-size: 6vw; /* Smaller font size for AM/PM */
+            vertical-align: super; /* Align AM/PM with the top of the time */
+        }
+        #gear-area {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            width: 84px;
+            height: 84px;
+            z-index: 20;
+        }
+        #gear-button {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.4);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(8px) scale(0.9);
+            transition: opacity 180ms ease, transform 180ms ease, background 180ms ease;
+            pointer-events: none;
+        }
+        #gear-area:hover #gear-button,
+        #gear-button:focus-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        #gear-button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        #settings-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 70px;
+            width: min(320px, 92vw);
+            background: rgba(15, 15, 15, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            padding: 16px;
+            color: #ffffff;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: opacity 200ms ease, transform 200ms ease;
+            z-index: 30;
+        }
+        #settings-panel.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        #settings-panel h3 {
+            font-size: 1rem;
+            margin: 0 0 12px 0;
+            letter-spacing: 0.02em;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .settings-row label {
+            font-size: 0.9rem;
+            margin: 0;
+            flex: 1;
+        }
+        .settings-row select,
+        .settings-row input[type="color"] {
+            background: #0f0f0f;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 6px 8px;
+        }
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .settings-actions .left {
+            margin-right: auto;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.78rem;
+        }
+        .settings-actions button {
+            background: #ffffff;
+            color: #000000;
+            border: 0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 640px) {
+            #clock { font-size: 18vw; }
+            #date { font-size: 6vw; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <h1 id="clock"></h1>
+        <h2 id="date"></h2>
+    </div>
+    <div id="gear-area" aria-hidden="false">
+        <button id="gear-button" type="button" aria-label="Open settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm9 3.3c0-.5-.04-1-.12-1.48l2.08-1.62-2-3.46-2.52 1a8.93 8.93 0 0 0-2.56-1.48l-.38-2.68H9.5l-.38 2.68c-.92.36-1.78.84-2.56 1.48l-2.52-1-2 3.46 2.08 1.62A9.17 9.17 0 0 0 3 12c0 .5.04 1 .12 1.48L1.04 15.1l2 3.46 2.52-1c.78.64 1.64 1.12 2.56 1.48l.38 2.68h4.04l.38-2.68c.92-.36 1.78-.84 2.56-1.48l2.52 1 2-3.46-2.08-1.62c.08-.48.12-.98.12-1.48Z" fill="currentColor"/>
+            </svg>
+        </button>
+    </div>
+    <div id="settings-panel" role="dialog" aria-labelledby="settings-title">
+        <h3 id="settings-title">Settings</h3>
+        <div class="settings-row">
+            <label for="font-select">Font</label>
+            <select id="font-select">
+                <option value='"Fira Mono", monospace'>Fira Mono</option>
+                <option value='"JetBrains Mono", monospace'>JetBrains Mono</option>
+                <option value='"Roboto Mono", monospace'>Roboto Mono</option>
+                <option value='"Ubuntu Mono", monospace'>Ubuntu Mono</option>
+                <option value='"Comic Mono", "Comic Sans", monospace'>Comic Sans Mono</option>
+                <option value='monospace'>System Mono</option>
+            </select>
+        </div>
+        <div class="settings-row">
+            <label for="font-color">Font color</label>
+            <input id="font-color" type="color" value="#00ff66" />
+        </div>
+        <div class="settings-row">
+            <label for="bg-color">Background</label>
+            <input id="bg-color" type="color" value="#000000" />
+        </div>
+        <div class="settings-row">
+            <label for="hour-format">Time format</label>
+            <select id="hour-format">
+                <option value="12">12-hour</option>
+                <option value="24">24-hour</option>
+            </select>
+        </div>
+        <div class="settings-row">
+            <label for="date-format">Date format</label>
+            <select id="date-format">
+                <option value="none">No Date</option>
+                <option value="mdy">M/D/YYYY</option>
+                <option value="dmy">D/M/YYYY</option>
+                <option value="ymd">YYYY-MM-DD</option>
+                <option value="long">Full Date</option>
+            </select>
+        </div>
+        <div class="settings-actions">
+            <span class="left">URL updates on change</span>
+            <button id="close-settings" type="button">Close</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const settingsPanel = document.getElementById('settings-panel');
+        const gearButton = document.getElementById('gear-button');
+        const closeSettings = document.getElementById('close-settings');
+        const fontSelect = document.getElementById('font-select');
+        const fontColorInput = document.getElementById('font-color');
+        const bgColorInput = document.getElementById('bg-color');
+        const hourFormatSelect = document.getElementById('hour-format');
+        const dateFormatSelect = document.getElementById('date-format');
+
+        function applySettings({ font, fontColor, bgColor, hourFormat, dateFormat }) {
+            if (font) document.documentElement.style.setProperty('--clock-font', font);
+            if (fontColor) document.documentElement.style.setProperty('--clock-color', fontColor);
+            if (bgColor) document.documentElement.style.setProperty('--bg-color', bgColor);
+            if (hourFormat) hourFormatSelect.value = hourFormat;
+            if (dateFormat) dateFormatSelect.value = dateFormat;
+        }
+
+        function getSettingsFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const defaultDateFormat = dateFormatSelect.value || 'long';
+            return {
+                font: params.get('font') || '',
+                fontColor: params.get('fg') || '',
+                bgColor: params.get('bg') || '',
+                hourFormat: params.get('h') || '12',
+                dateFormat: params.get('d') || defaultDateFormat
+            };
+        }
+
+        function updateUrlFromSettings() {
+            const params = new URLSearchParams();
+            if (fontSelect.value) params.set('font', fontSelect.value);
+            if (fontColorInput.value) params.set('fg', fontColorInput.value);
+            if (bgColorInput.value) params.set('bg', bgColorInput.value);
+            if (hourFormatSelect.value) params.set('h', hourFormatSelect.value);
+            if (dateFormatSelect.value) params.set('d', dateFormatSelect.value);
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        function syncInputs(settings) {
+            if (settings.font) fontSelect.value = settings.font;
+            if (settings.fontColor) fontColorInput.value = settings.fontColor;
+            if (settings.bgColor) bgColorInput.value = settings.bgColor;
+            if (settings.hourFormat) hourFormatSelect.value = settings.hourFormat;
+            if (settings.dateFormat) dateFormatSelect.value = settings.dateFormat;
+        }
+
+        function toggleSettings(open) {
+            settingsPanel.classList.toggle('open', open);
+        }
+
+        gearButton.addEventListener('click', () => toggleSettings(!settingsPanel.classList.contains('open')));
+        closeSettings.addEventListener('click', () => toggleSettings(false));
+        document.addEventListener('click', (event) => {
+            if (!settingsPanel.contains(event.target) && !gearButton.contains(event.target)) {
+                toggleSettings(false);
+            }
+        });
+
+        [fontSelect, fontColorInput, bgColorInput, hourFormatSelect, dateFormatSelect].forEach((el) => {
+            el.addEventListener('change', () => {
+                applySettings({
+                    font: fontSelect.value,
+                    fontColor: fontColorInput.value,
+                    bgColor: bgColorInput.value,
+                    hourFormat: hourFormatSelect.value,
+                    dateFormat: dateFormatSelect.value
+                });
+                updateUrlFromSettings();
+            });
+        });
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const is24Hour = hourFormatSelect.value === '24';
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            if (!is24Hour) {
+                hours = hours % 12;
+                hours = hours ? hours : 12; // the hour '0' should be '12'
+            } else {
+                hours = String(hours).padStart(2, '0');
+            }
+
+            let dateText = '';
+            if (dateFormatSelect.value === 'mdy') {
+                const month = now.getMonth() + 1;
+                const day = now.getDate();
+                const year = now.getFullYear();
+                dateText = `${month}/${day}/${year}`;
+            } else if (dateFormatSelect.value === 'dmy') {
+                const month = now.getMonth() + 1;
+                const day = now.getDate();
+                const year = now.getFullYear();
+                dateText = `${day}/${month}/${year}`;
+            } else if (dateFormatSelect.value === 'ymd') {
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const year = now.getFullYear();
+                dateText = `${year}-${month}-${day}`;
+            } else if (dateFormatSelect.value === 'long') {
+                const dayOfWeek = now.toLocaleString('en-US', { weekday: 'long' });
+                const date = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                dateText = `${dayOfWeek} - ${date}`;
+            } else if (dateFormatSelect.value === 'none') {
+                dateText = '';
+            } else {
+                const dayOfWeek = now.toLocaleString('en-US', { weekday: 'long' });
+                const date = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                dateText = `${dayOfWeek} - ${date}`;
+            }
+
+            document.body.classList.toggle('no-date', dateFormatSelect.value === 'none');
+            document.getElementById('clock').innerHTML = is24Hour
+                ? `<span class="time">${hours}:${minutes}:${seconds}</span>`
+                : `<span class="time">${hours}:${minutes}:${seconds}</span> <span class="ampm">${ampm}</span>`;
+            document.getElementById('date').textContent = dateText;
+        }
+
+        // Update the clock every second
+        setInterval(updateClock, 1000);
+
+        // Initial call to display the clock immediately
+        updateClock();
+
+        const initialSettings = getSettingsFromUrl();
+        applySettings(initialSettings);
+        syncInputs(initialSettings);
+    </script>
+</body>
+</html>
