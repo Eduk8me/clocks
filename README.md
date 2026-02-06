@@ -1,6 +1,6 @@
 # Eduk8me Clocks
 
-__([Full list of silly diversions from Eduk8.me Labs](https://labs.eduk8.me))
+__([Full list of silly diversions from Eduk8.me Labs](https://labs.eduk8.me))__
 
 ![Screenshots of clocks](https://eduk8me.github.io/clocks/assets/eduk8meclocks.png)
 
