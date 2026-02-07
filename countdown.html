@@ -6,6 +6,13 @@
     <title>Countdown Timer</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: "American Captain";
+            src: url("https://files.eduk8.me/resources/AmericanCaptain.woff") format("woff");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
         :root {
             --panel-bg: rgba(10, 10, 10, 0.92);
             --panel-border: rgba(255, 255, 255, 0.12);
@@ -22,6 +29,8 @@
             background-color: black;
             color: white; /* Default color */
             font-family: 'Roboto Mono', monospace;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1, "lnum" 1;
             margin: 0;
             padding: 0 10px;
             text-align: center;
@@ -45,6 +54,11 @@
         .countdown.long {
             font-size: clamp(32px, 4vw, 48px);
             white-space: nowrap;
+        }
+        .digit {
+            display: inline-block;
+            width: 0.5em;
+            text-align: center;
         }
 
         .settings-corner {
@@ -246,6 +260,7 @@
                     <option value="'IBM Plex Mono', monospace">IBM Plex Mono</option>
                     <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
                     <option value="'Fira Mono', monospace">Fira Mono</option>
+                    <option value='"American Captain", "Impact", "Haettenschweiler", "Arial Black", sans-serif'>American Captain</option>
                 </select>
             </div>
         </div>
@@ -264,6 +279,10 @@
 
     <script>
         let countdownIntervalId = null;
+
+        function wrapDigits(text) {
+            return text.replace(/\d/g, (digit) => `<span class="digit">${digit}</span>`);
+        }
 
         function updateCountdown(endDateTime, format, showTime, message, dateOnly = false) {
             const messageElement = document.getElementById('message');
@@ -294,7 +313,8 @@
                         ? { month: 'long', day: 'numeric', year: 'numeric' }
                         : { month: 'long', day: 'numeric' };
                     const dateString = end.toLocaleDateString(undefined, dateOptions);
-                    currentTimeElement.textContent = dateOnly ? dateString : `${dateString}, ${timeString}`;
+                    const timeLine = dateOnly ? dateString : `${dateString}, ${timeString}`;
+                    currentTimeElement.innerHTML = wrapDigits(timeLine);
                     currentTimeElement.classList.remove('hidden');
                 } else {
                     currentTimeElement.textContent = '';
@@ -302,7 +322,8 @@
                 }
 
                 if (timeRemaining <= 0) {
-                    countdownElement.textContent = dateOnly ? "Today" : "0 seconds";
+                    const doneText = dateOnly ? "Today" : "0 seconds";
+                    countdownElement.innerHTML = wrapDigits(doneText);
                     return;
                 }
 
@@ -310,9 +331,9 @@
                     const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
                     if (format === 'long') {
                         const dayText = daysRemaining === 1 ? 'day' : 'days';
-                        countdownElement.textContent = `${daysRemaining} ${dayText}`;
+                        countdownElement.innerHTML = wrapDigits(`${daysRemaining} ${dayText}`);
                     } else {
-                        countdownElement.textContent = `${daysRemaining}d`;
+                        countdownElement.innerHTML = wrapDigits(`${daysRemaining}d`);
                     }
                     return;
                 }
@@ -339,15 +360,15 @@
                     }
                     const secondText = seconds === 1 ? 'second' : 'seconds';
                     countdownText += `${seconds} ${secondText}`;
-                    countdownElement.textContent = countdownText;
+                    countdownElement.innerHTML = wrapDigits(countdownText);
                 } else {
                     const hoursText = String(hours).padStart(2, '0');
                     minutes = String(minutes).padStart(2, '0');
                     seconds = String(seconds).padStart(2, '0');
                     if (days > 0) {
-                        countdownElement.textContent = `${days}d ${hoursText}:${minutes}:${seconds}`;
+                        countdownElement.innerHTML = wrapDigits(`${days}d ${hoursText}:${minutes}:${seconds}`);
                     } else {
-                        countdownElement.textContent = `${hoursText}:${minutes}:${seconds}`;
+                        countdownElement.innerHTML = wrapDigits(`${hoursText}:${minutes}:${seconds}`);
                     }
                 }
             }

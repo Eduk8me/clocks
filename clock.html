@@ -16,6 +16,13 @@
             font-style: normal;
             font-display: swap;
         }
+        @font-face {
+            font-family: "American Captain";
+            src: url("https://files.eduk8.me/resources/AmericanCaptain.woff") format("woff");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
         :root {
             --clock-font: "Fira Mono", monospace;
             --clock-color: #00ff66;
@@ -30,6 +37,8 @@
             color: var(--clock-color);
             font-size: 16vw; /* Adjusted font size to fit AM/PM */
             font-family: var(--clock-font);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1, "lnum" 1;
             text-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
             position: absolute;
             top: 40%;
@@ -45,6 +54,8 @@
             color: var(--clock-color);
             font-size: 5vw; /* Adjust font size based on viewport width */
             font-family: var(--clock-font);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1, "lnum" 1;
             text-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
             position: absolute;
             top: 60%;
@@ -58,6 +69,11 @@
         }
         .time {
             display: inline-block;
+        }
+        .digit {
+            display: inline-block;
+            width: 0.5em;
+            text-align: center;
         }
         .ampm {
             font-size: 6vw; /* Smaller font size for AM/PM */
@@ -204,6 +220,7 @@
                 <option value='"Roboto Mono", monospace'>Roboto Mono</option>
                 <option value='"Ubuntu Mono", monospace'>Ubuntu Mono</option>
                 <option value='"Comic Mono", "Comic Sans", monospace'>Comic Sans Mono</option>
+                <option value='"American Captain", "Impact", "Haettenschweiler", "Arial Black", sans-serif'>American Captain</option>
                 <option value='monospace'>System Mono</option>
             </select>
         </div>
@@ -312,6 +329,10 @@
             });
         });
 
+        function wrapDigits(text) {
+            return text.replace(/\d/g, (digit) => `<span class="digit">${digit}</span>`);
+        }
+
         function updateClock() {
             const now = new Date();
             let hours = now.getHours();
@@ -319,11 +340,13 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const is24Hour = hourFormatSelect.value === '24';
             const ampm = hours >= 12 ? 'PM' : 'AM';
+            let hoursText = '';
             if (!is24Hour) {
                 hours = hours % 12;
                 hours = hours ? hours : 12; // the hour '0' should be '12'
+                hoursText = String(hours);
             } else {
-                hours = String(hours).padStart(2, '0');
+                hoursText = String(hours).padStart(2, '0');
             }
 
             let dateText = '';
@@ -355,10 +378,11 @@
             }
 
             document.body.classList.toggle('no-date', dateFormatSelect.value === 'none');
+            const timeText = `${hoursText}:${minutes}:${seconds}`;
             document.getElementById('clock').innerHTML = is24Hour
-                ? `<span class="time">${hours}:${minutes}:${seconds}</span>`
-                : `<span class="time">${hours}:${minutes}:${seconds}</span> <span class="ampm">${ampm}</span>`;
-            document.getElementById('date').textContent = dateText;
+                ? `<span class="time">${wrapDigits(timeText)}</span>`
+                : `<span class="time">${wrapDigits(timeText)}</span> <span class="ampm">${ampm}</span>`;
+            document.getElementById('date').innerHTML = dateText ? wrapDigits(dateText) : '';
         }
 
         // Update the clock every second
